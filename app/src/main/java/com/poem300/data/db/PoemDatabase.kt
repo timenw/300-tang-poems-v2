@@ -44,7 +44,7 @@ interface PoemDao {
 
 @Dao
 interface FavoriteDao {
-    @Query("SELECT p.* FROM poems f INNER JOIN favorites fav ON f.id = fav.poemId ORDER BY fav.createdAt DESC")
+    @Query("SELECT poems.* FROM poems INNER JOIN favorites ON poems.id = favorites.poemId ORDER BY favorites.createdAt DESC")
     fun getFavoritePoems(): Flow<List<Poem>>
 
     @Query("SELECT poemId FROM favorites")
