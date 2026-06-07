@@ -49,6 +49,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: app/build/outputs/apk/release/300poems-release.apk
+          path: app/build/outputs/apk/release/app-release.apk
           retention-days: 30
           if-no-files-found: error
