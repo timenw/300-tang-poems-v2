@@ -19,7 +19,7 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
-    private lateinit var billingClient: BillingClient
+    private var billingClient: BillingClient? = null
 
     companion object {
         private const val TAG = "BillingManager"
@@ -27,29 +27,32 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     }
 
     fun startConnection() {
-        billingClient = BillingClient.newBuilder(application)
-            .setListener(this)
-            .enablePendingPurchases()
-            .build()
+        try {
+            billingClient = BillingClient.newBuilder(application)
+                .setListener(this)
+                .enablePendingPurchases()
+                .build()
 
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    _isConnected.value = true
-                    Log.d(TAG, "Billing connected")
-                    queryPurchases()
-                } else {
-                    Log.e(TAG, "Billing setup failed: ${result.responseCode} - ${result.debugMessage}")
+            billingClient?.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                        _isConnected.value = true
+                        Log.d(TAG, "Billing connected")
+                        queryPurchases()
+                    } else {
+                        Log.e(TAG, "Billing setup failed: ${result.responseCode} - ${result.debugMessage}")
+                    }
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                _isConnected.value = false
-                Log.d(TAG, "Billing disconnected")
-                // Retry connection
-                retryConnection()
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    _isConnected.value = false
+                    Log.d(TAG, "Billing disconnected")
+                    retryConnection()
+                }
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Billing startConnection error: ${e.message}")
+        }
     }
 
     private fun retryConnection() {
@@ -81,7 +84,7 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
                 val acknowledgeParams = AcknowledgePurchaseParams.newBuilder()
                     .setPurchaseToken(purchase.purchaseToken)
                     .build()
-                billingClient.acknowledgePurchase(acknowledgeParams) { result ->
+                billingClient?.acknowledgePurchase(acknowledgeParams) { result ->
                     if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                         _isPremium.value = true
                         Log.d(TAG, "Purchase acknowledged")
@@ -94,56 +97,64 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     }
 
     private fun queryPurchases() {
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.INAPP)
-            .build()
-        billingClient.queryPurchasesAsync(params) { result, purchases ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                val hasPremium = purchases.any {
-                    it.products.contains(SKU_PREMIUM) && it.purchaseState == Purchase.PurchaseState.PURCHASED
+        try {
+            val params = QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+            billingClient?.queryPurchasesAsync(params) { result, purchases ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val hasPremium = purchases.any {
+                        it.products.contains(SKU_PREMIUM) && it.purchaseState == Purchase.PurchaseState.PURCHASED
+                    }
+                    _isPremium.value = hasPremium
+                    Log.d(TAG, "Premium status: $hasPremium")
                 }
-                _isPremium.value = hasPremium
-                Log.d(TAG, "Premium status: $hasPremium")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "queryPurchases error: ${e.message}")
         }
     }
 
     fun launchPurchaseFlow(activity: android.app.Activity) {
-        val queryParams = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                listOf(
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(SKU_PREMIUM)
-                        .setProductType(BillingClient.ProductType.INAPP)
-                        .build()
-                )
-            )
-            .build()
-
-        billingClient.queryProductDetailsAsync(queryParams) { result, productDetailsList ->
-            if (result.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
-                val productDetails = productDetailsList[0]
-                val billingFlowParams = BillingFlowParams.newBuilder()
-                    .setProductDetailsParamsList(
-                        listOf(
-                            BillingFlowParams.ProductDetailsParams.newBuilder()
-                                .setProductDetails(productDetails)
-                                .build()
-                        )
+        try {
+            val queryParams = QueryProductDetailsParams.newBuilder()
+                .setProductList(
+                    listOf(
+                        QueryProductDetailsParams.Product.newBuilder()
+                            .setProductId(SKU_PREMIUM)
+                            .setProductType(BillingClient.ProductType.INAPP)
+                            .build()
                     )
-                    .build()
-                billingClient.launchBillingFlow(activity, billingFlowParams)
-            } else {
-                Log.e(TAG, "Product details query failed: ${result.debugMessage}")
+                )
+                .build()
+
+            billingClient?.queryProductDetailsAsync(queryParams) { result, productDetailsList ->
+                if (result.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
+                    val productDetails = productDetailsList[0]
+                    val billingFlowParams = BillingFlowParams.newBuilder()
+                        .setProductDetailsParamsList(
+                            listOf(
+                                BillingFlowParams.ProductDetailsParams.newBuilder()
+                                    .setProductDetails(productDetails)
+                                    .build()
+                            )
+                        )
+                        .build()
+                    billingClient?.launchBillingFlow(activity, billingFlowParams)
+                } else {
+                    Log.e(TAG, "Product details query failed: ${result.debugMessage}")
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "launchPurchaseFlow error: ${e.message}")
         }
     }
 
     fun endConnection() {
         try {
-            billingClient.endConnection()
+            billingClient?.endConnection()
         } catch (e: Exception) {
-            // billingClient may not have been initialized
+            Log.e(TAG, "endConnection error: ${e.message}")
         }
     }
 }
