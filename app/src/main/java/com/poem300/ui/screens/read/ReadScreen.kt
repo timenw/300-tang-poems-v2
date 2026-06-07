@@ -1,12 +1,8 @@
 package com.poem300.ui.screens.read
 
-import android.speech.tts.TextToSpeech
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,16 +11,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.poem300.audio.AudioManager
 import com.poem300.data.model.Poem
 import com.poem300.ui.theme.*
-import java.util.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,19 +39,82 @@ fun ReadScreen(
     var showTranslation by remember { mutableStateOf(false) }
     var showNoteEditor by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
-    var isSpeaking by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    // Audio manager
+    val audioManager = remember { AudioManager(context) }
+    var hasAudio by remember { mutableStateOf(audioManager.hasAudio(poem.id ?: 0)) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(Unit) {
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.CHINESE
-            }
-        }
         onDispose {
-            tts?.stop()
-            tts?.shutdown()
+            audioManager.release()
         }
+    }
+
+    // Download dialog
+    if (showDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!isDownloading) showDownloadDialog = false },
+            title = { Text("下载朗诵音频") },
+            text = {
+                Column {
+                    Text("下载 AI 语音朗诵音频包（约 6.5MB），下载后可离线播放。")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (isDownloading) {
+                        LinearProgressIndicator(
+                            progress = downloadProgress,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "${(downloadProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    downloadError?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                if (!isDownloading) {
+                    TextButton(onClick = {
+                        isDownloading = true
+                        downloadError = null
+                        scope.launch {
+                            audioManager.downloadAudioPack { downloaded, total ->
+                                downloadProgress = if (total > 0) downloaded.toFloat() / total else 0f
+                            }.fold(
+                                onSuccess = {
+                                    hasAudio = audioManager.hasAudio(poem.id ?: 0)
+                                    isDownloading = false
+                                    showDownloadDialog = false
+                                },
+                                onFailure = { e ->
+                                    downloadError = "下载失败: ${e.message}"
+                                    isDownloading = false
+                                }
+                            )
+                        }
+                    }) {
+                        Text("下载")
+                    }
+                }
+            },
+            dismissButton = {
+                if (!isDownloading) {
+                    TextButton(onClick = { showDownloadDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -95,21 +154,35 @@ fun ReadScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    // Read aloud
+                    // Read aloud (AI audio)
                     AssistChip(
                         onClick = {
-                            if (isSpeaking) {
-                                tts?.stop()
-                                isSpeaking = false
+                            if (isPlaying) {
+                                audioManager.stop()
+                                isPlaying = false
+                            } else if (hasAudio) {
+                                val started = audioManager.play(poem.id ?: 0)
+                                isPlaying = started
                             } else {
-                                tts?.speak(poem.content, TextToSpeech.QUEUE_FLUSH, null, "poem")
-                                isSpeaking = true
+                                showDownloadDialog = true
                             }
                         },
-                        label = { Text(if (isSpeaking) "Stop" else "Read") },
+                        label = {
+                            Text(
+                                when {
+                                    isPlaying -> "Stop"
+                                    hasAudio -> "Read"
+                                    else -> "Download"
+                                }
+                            )
+                        },
                         leadingIcon = {
                             Icon(
-                                if (isSpeaking) Icons.Filled.Stop else Icons.Filled.Campaign,
+                                when {
+                                    isPlaying -> Icons.Filled.Stop
+                                    hasAudio -> Icons.Filled.Campaign
+                                    else -> Icons.Filled.Download
+                                },
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
