@@ -45,22 +45,37 @@ fun ReadScreen(
     val context = LocalContext.current
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var isSpeaking by remember { mutableStateOf(false) }
+    var ttsReady by remember { mutableStateOf(false) }
     var ttsError by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(Unit) {
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                val result = tts?.setLanguage(Locale.CHINESE)
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    ttsError = "中文语音包未安装，请前往系统设置 → 语言与输入法 → 文字转语音 → 安装中文语音数据"
+        try {
+            tts = TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    val result = tts?.setLanguage(Locale.CHINESE)
+                    when (result) {
+                        TextToSpeech.LANG_MISSING_DATA -> {
+                            ttsError = "缺少中文语音数据，请在系统设置中下载"
+                        }
+                        TextToSpeech.LANG_NOT_SUPPORTED -> {
+                            ttsError = "不支持中文语音"
+                        }
+                        else -> {
+                            ttsReady = true
+                        }
+                    }
+                } else {
+                    ttsError = "语音引擎初始化失败 (code=$status)，请检查系统TTS设置"
                 }
-            } else {
-                ttsError = "语音引擎初始化失败"
             }
+        } catch (e: Exception) {
+            ttsError = "语音引擎异常: ${e.message}"
         }
         onDispose {
-            tts?.stop()
-            tts?.shutdown()
+            try {
+                tts?.stop()
+                tts?.shutdown()
+            } catch (_: Exception) {}
         }
     }
 
@@ -104,21 +119,41 @@ fun ReadScreen(
                     // Read aloud
                     AssistChip(
                         onClick = {
-                            if (ttsError != null) {
-                                // show error via Toast
-                                android.widget.Toast.makeText(context, ttsError, android.widget.Toast.LENGTH_LONG).show()
-                            } else if (isSpeaking) {
-                                tts?.stop()
-                                isSpeaking = false
-                            } else {
-                                tts?.speak(poem.content, TextToSpeech.QUEUE_FLUSH, null, "poem")
-                                isSpeaking = true
+                            when {
+                                ttsError != null -> {
+                                    android.widget.Toast.makeText(context, ttsError, android.widget.Toast.LENGTH_LONG).show()
+                                }
+                                !ttsReady -> {
+                                    android.widget.Toast.makeText(context, "语音引擎正在初始化，请稍候...", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                                isSpeaking -> {
+                                    tts?.stop()
+                                    isSpeaking = false
+                                }
+                                else -> {
+                                    tts?.speak(poem.content, TextToSpeech.QUEUE_FLUSH, null, "poem")
+                                    isSpeaking = true
+                                }
                             }
                         },
-                        label = { Text(if (isSpeaking) "Stop" else "Read") },
+                        label = {
+                            Text(
+                                when {
+                                    isSpeaking -> "Stop"
+                                    ttsError != null -> "TTS Error"
+                                    !ttsReady -> "Loading..."
+                                    else -> "Read"
+                                }
+                            )
+                        },
                         leadingIcon = {
                             Icon(
-                                if (isSpeaking) Icons.Filled.Stop else Icons.Filled.VolumeUp,
+                                when {
+                                    isSpeaking -> Icons.Filled.Stop
+                                    ttsError != null -> Icons.Filled.Warning
+                                    !ttsReady -> Icons.Filled.HourglassEmpty
+                                    else -> Icons.Filled.VolumeUp
+                                },
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
