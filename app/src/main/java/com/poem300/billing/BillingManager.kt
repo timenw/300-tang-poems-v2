@@ -140,8 +140,10 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     }
 
     fun endConnection() {
-        if (::billingClient.isInitialized) {
+        try {
             billingClient.endConnection()
+        } catch (e: Exception) {
+            // billingClient may not have been initialized
         }
     }
 }

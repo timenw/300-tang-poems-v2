@@ -5,3 +5,4 @@ app/build/
 build/
 *.keystore
 *.jks
+app-debug.apk
