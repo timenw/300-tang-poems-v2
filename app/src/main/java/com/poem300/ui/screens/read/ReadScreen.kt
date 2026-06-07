@@ -67,10 +67,10 @@ fun ReadScreen(
     if (showDownloadDialog) {
         AlertDialog(
             onDismissRequest = { if (!isDownloading) showDownloadDialog = false },
-            title = { Text("下载朗诵音频") },
+            title = { Text("Download Audio") },
             text = {
                 Column {
-                    Text("下载 AI 语音朗诵音频包（约 6.5MB），下载后可离线播放。")
+                    Text("Download AI audio recitation pack (~6.5MB). Play offline after download.")
                     Spacer(modifier = Modifier.height(12.dp))
                     if (isDownloading) {
                         LinearProgressIndicator(
@@ -105,20 +105,20 @@ fun ReadScreen(
                                     showDownloadDialog = false
                                 },
                                 onFailure = { e ->
-                                    downloadError = "下载失败: ${e.message}"
+                                    downloadError = "Download failed: ${e.message}"
                                     isDownloading = false
                                 }
                             )
                         }
                     }) {
-                        Text("下载")
+                        Text("Download")
                     }
                 }
             },
             dismissButton = {
                 if (!isDownloading) {
                     TextButton(onClick = { showDownloadDialog = false }) {
-                        Text("取消")
+                        Text("Cancel")
                     }
                 }
             }
