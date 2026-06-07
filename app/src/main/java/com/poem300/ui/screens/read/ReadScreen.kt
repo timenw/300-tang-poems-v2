@@ -45,11 +45,17 @@ fun ReadScreen(
     val context = LocalContext.current
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var isSpeaking by remember { mutableStateOf(false) }
+    var ttsError by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(Unit) {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.CHINESE
+                val result = tts?.setLanguage(Locale.CHINESE)
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    ttsError = "中文语音包未安装，请前往系统设置 → 语言与输入法 → 文字转语音 → 安装中文语音数据"
+                }
+            } else {
+                ttsError = "语音引擎初始化失败"
             }
         }
         onDispose {
@@ -98,7 +104,10 @@ fun ReadScreen(
                     // Read aloud
                     AssistChip(
                         onClick = {
-                            if (isSpeaking) {
+                            if (ttsError != null) {
+                                // show error via Toast
+                                android.widget.Toast.makeText(context, ttsError, android.widget.Toast.LENGTH_LONG).show()
+                            } else if (isSpeaking) {
                                 tts?.stop()
                                 isSpeaking = false
                             } else {
