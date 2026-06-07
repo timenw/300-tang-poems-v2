@@ -112,7 +112,7 @@ fun PoemCard(
             // Translation (optional)
             if (showTranslation) {
                 Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Divider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(modifier = Modifier.height(12.dp))
                 poem.translation.split("\n").forEach { line ->
                     Text(

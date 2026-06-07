@@ -73,18 +73,18 @@ fun QuoteScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Style selector
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
+            // Style selector — using Row of FilterChip as fallback for compatibility
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
             ) {
                 styles.forEachIndexed { index, label ->
-                    SegmentedButton(
+                    FilterChip(
                         selected = selectedStyle == index,
                         onClick = { selectedStyle = index },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = styles.size)
-                    ) {
-                        Text(label)
-                    }
+                        label = { Text(label) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -276,21 +276,17 @@ private fun sharePoemCard(context: Context, poem: Poem, style: Int) {
         y += 100f
 
         // Divider
-        paint.apply {
-            color = (accentColor and 0xFFFFFF) or (0x80 shl 24) // 50% alpha
-            strokeWidth = 3f
-            style = Paint.Style.STROKE
-        }
+        paint.color = (accentColor and 0xFFFFFF) or (0x80 shl 24) // 50% alpha
+        paint.strokeWidth = 3f
+        paint.style = Paint.Style.STROKE
         canvas.drawLine(width / 2f - 100, y, width / 2f + 100, y, paint)
         y += 80f
 
         // Content
-        paint.apply {
-            color = textColor
-            textSize = 48f
-            typeface = Typeface.DEFAULT
-            style = Paint.Style.FILL
-        }
+        paint.color = textColor
+        paint.textSize = 48f
+        paint.typeface = Typeface.DEFAULT
+        paint.style = Paint.Style.FILL
         val lines = poem.content.split("\n").take(4)
         lines.forEach { line ->
             canvas.drawText(line, width / 2f, y, paint)
@@ -306,21 +302,17 @@ private fun sharePoemCard(context: Context, poem: Poem, style: Int) {
         y += 40f
 
         // Divider
-        paint.apply {
-            color = (accentColor and 0xFFFFFF) or (0x80 shl 24) // 50% alpha
-            strokeWidth = 3f
-            style = Paint.Style.STROKE
-        }
+        paint.color = (accentColor and 0xFFFFFF) or (0x80 shl 24) // 50% alpha
+        paint.strokeWidth = 3f
+        paint.style = Paint.Style.STROKE
         canvas.drawLine(width / 2f - 100, y, width / 2f + 100, y, paint)
         y += 60f
 
         // Author
-        paint.apply {
-            color = accentColor
-            textSize = 30f
-            typeface = Typeface.DEFAULT
-            style = Paint.Style.FILL
-        }
+        paint.color = accentColor
+        paint.textSize = 30f
+        paint.typeface = Typeface.DEFAULT
+        paint.style = Paint.Style.FILL
         canvas.drawText("${poem.authorEn} · ${poem.dynastyEn} Dynasty", width / 2f, y, paint)
         y += 80f
 

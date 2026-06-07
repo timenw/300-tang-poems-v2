@@ -228,7 +228,7 @@ fun ReadScreen(
                         .fillMaxWidth()
                         .padding(top = 24.dp)
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Translation",
@@ -258,7 +258,7 @@ fun ReadScreen(
                         .fillMaxWidth()
                         .padding(top = 24.dp)
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "About This Poem",
@@ -283,7 +283,7 @@ fun ReadScreen(
                         .fillMaxWidth()
                         .padding(top = 24.dp)
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "My Note",
