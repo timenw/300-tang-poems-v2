@@ -43,17 +43,23 @@ fun ReadScreen(
 
     // Audio manager
     val audioManager = remember { AudioManager(context) }
-    var hasAudio by remember { mutableStateOf(audioManager.hasAudio(poem.id ?: 0)) }
+    val poemId = poem.id ?: 0
+    var hasAudio by remember { mutableStateOf(audioManager.hasAudio(poemId)) }
     var isPlaying by remember { mutableStateOf(false) }
     var showDownloadDialog by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableStateOf(0f) }
     var downloadError by remember { mutableStateOf<String?>(null) }
 
-    // Refresh hasAudio state when dialog closes (after download)
+    // Track whether download just completed successfully
+    var downloadJustCompleted by remember { mutableStateOf(false) }
+
+    // Refresh hasAudio when dialog closes after download
     LaunchedEffect(showDownloadDialog) {
-        if (!showDownloadDialog) {
-            hasAudio = audioManager.hasAudio(poem.id ?: 0)
+        if (!showDownloadDialog && downloadJustCompleted) {
+            // Re-check file system to confirm
+            hasAudio = audioManager.hasAudio(poemId)
+            downloadJustCompleted = false
         }
     }
 
@@ -99,8 +105,8 @@ fun ReadScreen(
                                 downloadProgress = if (total > 0) downloaded.toFloat() / total else 0f
                             }.fold(
                                 onSuccess = {
-                                    val pid = poem.id ?: 0
-                                    hasAudio = audioManager.hasAudio(pid)
+                                    downloadJustCompleted = true
+                                    hasAudio = true
                                     isDownloading = false
                                     showDownloadDialog = false
                                 },
@@ -169,7 +175,7 @@ fun ReadScreen(
                                 audioManager.stop()
                                 isPlaying = false
                             } else if (hasAudio) {
-                                val started = audioManager.play(poem.id ?: 0)
+                                val started = audioManager.play(poemId)
                                 isPlaying = started
                             } else {
                                 showDownloadDialog = true
