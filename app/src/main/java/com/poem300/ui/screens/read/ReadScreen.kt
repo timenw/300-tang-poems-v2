@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import com.poem300.audio.AudioManager
 import com.poem300.data.model.Poem
 import com.poem300.ui.theme.*
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,96 +38,16 @@ fun ReadScreen(
     var showTranslation by remember { mutableStateOf(false) }
     var showNoteEditor by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Audio manager
+    // Audio manager - bundled in assets
     val audioManager = remember { AudioManager(context) }
     val poemId = poem.id ?: 0
-    var hasAudio by remember { mutableStateOf(audioManager.hasAudio(poemId)) }
     var isPlaying by remember { mutableStateOf(false) }
-    var showDownloadDialog by remember { mutableStateOf(false) }
-    var isDownloading by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableStateOf(0f) }
-    var downloadError by remember { mutableStateOf<String?>(null) }
-
-    // Track whether download just completed successfully
-    var downloadJustCompleted by remember { mutableStateOf(false) }
-
-    // Refresh hasAudio when dialog closes after download
-    LaunchedEffect(showDownloadDialog) {
-        if (!showDownloadDialog && downloadJustCompleted) {
-            // Re-check file system to confirm
-            hasAudio = audioManager.hasAudio(poemId)
-            downloadJustCompleted = false
-        }
-    }
 
     DisposableEffect(Unit) {
         onDispose {
             audioManager.release()
         }
-    }
-
-    // Download dialog
-    if (showDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { if (!isDownloading) showDownloadDialog = false },
-            title = { Text("Download Audio") },
-            text = {
-                Column {
-                    Text("Download AI audio recitation pack (~6.5MB). Play offline after download.")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    if (isDownloading) {
-                        LinearProgressIndicator(
-                            progress = downloadProgress,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "${(downloadProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    downloadError?.let {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(it, color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            },
-            confirmButton = {
-                if (!isDownloading) {
-                    TextButton(onClick = {
-                        isDownloading = true
-                        downloadError = null
-                        scope.launch {
-                            audioManager.downloadAudioPack { downloaded, total ->
-                                downloadProgress = if (total > 0) downloaded.toFloat() / total else 0f
-                            }.fold(
-                                onSuccess = {
-                                    downloadJustCompleted = true
-                                    hasAudio = true
-                                    isDownloading = false
-                                    showDownloadDialog = false
-                                },
-                                onFailure = { e ->
-                                    downloadError = "Download failed: ${e.message}"
-                                    isDownloading = false
-                                }
-                            )
-                        }
-                    }) {
-                        Text("Download")
-                    }
-                }
-            },
-            dismissButton = {
-                if (!isDownloading) {
-                    TextButton(onClick = { showDownloadDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            }
-        )
     }
 
     Scaffold(
@@ -174,29 +93,17 @@ fun ReadScreen(
                             if (isPlaying) {
                                 audioManager.stop()
                                 isPlaying = false
-                            } else if (hasAudio) {
+                            } else {
                                 val started = audioManager.play(poemId)
                                 isPlaying = started
-                            } else {
-                                showDownloadDialog = true
                             }
                         },
                         label = {
-                            Text(
-                                when {
-                                    isPlaying -> "Stop"
-                                    hasAudio -> "Read"
-                                    else -> "Download"
-                                }
-                            )
+                            Text(if (isPlaying) "Stop" else "Read")
                         },
                         leadingIcon = {
                             Icon(
-                                when {
-                                    isPlaying -> Icons.Filled.Stop
-                                    hasAudio -> Icons.Filled.Campaign
-                                    else -> Icons.Filled.Download
-                                },
+                                if (isPlaying) Icons.Filled.Stop else Icons.Filled.Campaign,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )

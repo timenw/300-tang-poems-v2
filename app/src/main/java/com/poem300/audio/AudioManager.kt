@@ -3,28 +3,21 @@ package com.poem300.audio
 import android.content.Context
 import android.media.MediaPlayer
 import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.zip.ZipInputStream
 
 /**
- * Manages AI-generated poem audio: download, cache, and playback.
- * Audio files are stored in: /data/data/com.poem300/files/audio/
+ * Manages AI-generated poem audio from bundled assets.
+ * Audio files are bundled at assets/audio/poem_001.mp3 etc.
+ * On first play, they are copied to internal storage for MediaPlayer compatibility.
  * File naming: poem_001.mp3, poem_002.mp3, ...
  */
 class AudioManager(private val context: Context) {
 
     companion object {
         private const val TAG = "AudioManager"
+        private const val AUDIO_ASSETS_DIR = "audio"
         private const val AUDIO_DIR = "audio"
-        private const val ZIP_FILE = "poem_audio_v2.zip"
-        // GitHub Release download URL
-        private const val AUDIO_ZIP_URL =
-            "https://github.com/timenw/300-tang-poems-v2/releases/download/v2.0.0/poem_audio_v2.zip"
     }
 
     private var mediaPlayer: MediaPlayer? = null
@@ -33,107 +26,47 @@ class AudioManager(private val context: Context) {
     private val audioDir: File
         get() = File(context.filesDir, AUDIO_DIR).also { it.mkdirs() }
 
-    /** Check if audio file exists locally for a given poem ID. */
-    fun hasAudio(poemId: Int): Boolean {
-        return File(audioDir, "poem_${poemId.toString().padStart(3, '0')}.mp3").exists()
-    }
+    /** Get the audio file for a poem. Copies from assets if not cached locally. */
+    private fun getAudioFile(poemId: Int): File? {
+        val fileName = "poem_${poemId.toString().padStart(3, '0')}.mp3"
+        val localFile = File(audioDir, fileName)
 
-    /** Get total count of locally cached audio files. */
-    fun cachedCount(): Int = audioDir.listFiles()?.count { it.name.endsWith(".mp3") } ?: 0
+        if (localFile.exists() && localFile.length() > 0) {
+            return localFile
+        }
 
-    /** Download and extract the audio ZIP package. */
-    suspend fun downloadAudioPack(
-        onProgress: (downloaded: Long, total: Long) -> Unit = { _, _ -> }
-    ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            Log.d(TAG, "Downloading audio pack from $AUDIO_ZIP_URL")
-            val zipFile = File(context.cacheDir, ZIP_FILE)
-
-            // Follow redirects manually (GitHub redirects to different host)
-            var currentUrl = AUDIO_ZIP_URL
-            var redirectCount = 0
-            var connection: HttpURLConnection? = null
-            while (redirectCount < 10) {
-                val url = URL(currentUrl)
-                connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 30000
-                connection.readTimeout = 60000
-                connection.requestMethod = "GET"
-                connection.instanceFollowRedirects = true
-                connection.connect()
-                val code = connection.responseCode
-                if (code == HttpURLConnection.HTTP_OK) break
-                if (code in 300..399) {
-                    val location = connection.getHeaderField("Location")
-                    if (location != null) {
-                        Log.d(TAG, "Redirect $code -> $location")
-                        currentUrl = location
-                        redirectCount++
-                        connection.disconnect()
-                        continue
-                    }
-                }
-                throw Exception("HTTP $code: ${connection.responseMessage}")
-            }
-
-            val totalSize = connection!!.contentLength.toLong()
-            Log.d(TAG, "Audio pack size: ${totalSize / 1024}KB")
-
-            connection.inputStream.use { input ->
-                FileOutputStream(zipFile).use { output ->
-                    val buffer = ByteArray(8192)
-                    var downloaded = 0L
-                    var bytesRead: Int
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        downloaded += bytesRead
-                        onProgress(downloaded, totalSize)
-                    }
+        // Copy from assets to internal storage
+        return try {
+            context.assets.open("$AUDIO_ASSETS_DIR/$fileName").use { input ->
+                FileOutputStream(localFile).use { output ->
+                    input.copyTo(output)
                 }
             }
-            connection.disconnect()
-
-            Log.d(TAG, "Download complete, size=${zipFile.length()} bytes, extracting...")
-
-            // Verify it's actually a ZIP, not an HTML redirect page
-            if (zipFile.length() < 1000) {
-                throw Exception("Downloaded file too small (${zipFile.length()} bytes), likely not a ZIP")
-            }
-
-            extractZip(zipFile)
-            zipFile.delete()
-
-            val count = cachedCount()
-            Log.d(TAG, "Extraction complete, $count audio files cached")
-            Result.success(Unit)
+            Log.d(TAG, "Copied from assets: $fileName (${localFile.length()} bytes)")
+            localFile
         } catch (e: Exception) {
-            Log.e(TAG, "Download failed", e)
-            Result.failure(e)
+            Log.e(TAG, "Audio not in assets: $fileName", e)
+            null
         }
     }
 
-    private fun extractZip(zipFile: File) {
-        ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory && entry.name.endsWith(".mp3")) {
-                    val outFile = File(audioDir, entry.name.substringAfterLast("/"))
-                    outFile.outputStream().use { fos ->
-                        zis.copyTo(fos)
-                    }
-                    Log.d(TAG, "Extracted: ${outFile.name}")
-                }
-                zis.closeEntry()
-                entry = zis.nextEntry
-            }
+    /** Check if audio exists for a poem (in assets or cached locally). */
+    fun hasAudio(poemId: Int): Boolean {
+        val fileName = "poem_${poemId.toString().padStart(3, '0')}.mp3"
+        val localFile = File(audioDir, fileName)
+        if (localFile.exists() && localFile.length() > 0) return true
+        // Check assets
+        return try {
+            context.assets.open("$AUDIO_ASSETS_DIR/$fileName").use { it.available() > 0 }
+        } catch (e: Exception) {
+            false
         }
     }
 
     /** Play audio for a poem. Returns true if playback started. */
     fun play(poemId: Int): Boolean {
-        val file = File(audioDir, "poem_${poemId.toString().padStart(3, '0')}.mp3")
-        if (!file.exists()) {
-            Log.w(TAG, "Audio file not found: ${file.absolutePath}")
+        val file = getAudioFile(poemId) ?: run {
+            Log.w(TAG, "Audio not available for poem $poemId")
             return false
         }
         try {
