@@ -44,6 +44,13 @@ fun ReadScreen(
     val poemId = poem.id ?: 0
     var isPlaying by remember { mutableStateOf(false) }
 
+    // Reset isPlaying when playback completes
+    LaunchedEffect(audioManager) {
+        audioManager.onPlaybackComplete = {
+            isPlaying = false
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             audioManager.release()

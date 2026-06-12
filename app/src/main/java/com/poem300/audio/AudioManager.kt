@@ -22,6 +22,7 @@ class AudioManager(private val context: Context) {
 
     private var mediaPlayer: MediaPlayer? = null
     private var currentPoemId: Int? = null
+    var onPlaybackComplete: (() -> Unit)? = null
 
     /** Get the audio file for a poem. Copies from assets to cache if needed. */
     private fun getAudioFile(poemId: Int): File? {
@@ -63,6 +64,7 @@ class AudioManager(private val context: Context) {
                 setDataSource(file.absolutePath)
                 setOnCompletionListener {
                     currentPoemId = null
+                    onPlaybackComplete?.invoke()
                 }
                 prepare()
                 start()
