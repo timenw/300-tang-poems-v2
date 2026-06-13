@@ -17,11 +17,14 @@ import com.poem300.ui.theme.*
 @Composable
 fun SettingsScreen(
     isPremium: Boolean,
+    isTestMode: Boolean,
     favoriteCount: Int,
+    audioPlayCount: Int,
     onPurchaseClick: () -> Unit,
     onRestoreClick: () -> Unit,
     onPrivacyClick: () -> Unit,
     onBack: () -> Unit,
+    onToggleTestMode: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -45,7 +48,7 @@ fun SettingsScreen(
             // Premium card
             item {
                 if (isPremium) {
-                    PremiumActiveCard()
+                    PremiumActiveCard(isTestMode = isTestMode)
                 } else {
                     PremiumPurchaseCard(onPurchaseClick, onRestoreClick)
                 }
@@ -70,10 +73,82 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            StatItem("Favorites", "$favoriteCount")
+                            StatItem("Favorites", "$favoriteCount${if (!isPremium) "/20" else ""}")
                             StatItem("Poems", "300")
                             StatItem("Poets", "77+")
                         }
+                    }
+                }
+            }
+
+            // Audio usage (only for free users)
+            if (!isPremium) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Audio Usage Today",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "$audioPlayCount / 10 plays used",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { audioPlayCount / 10f },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Resets daily at midnight",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Test mode switch (debug builds only)
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🧪 Test Mode",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Simulate Premium without real purchase",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isTestMode,
+                            onCheckedChange = { onToggleTestMode() }
+                        )
                     }
                 }
             }
@@ -100,7 +175,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Version 1.0.0",
+                            text = "Version 2.0.0",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -141,13 +216,12 @@ private fun PremiumPurchaseCard(onPurchase: () -> Unit, onRestore: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Only list features that are actually implemented
             val features = listOf(
-                "Unlimited favorites",
-                "All themes & backgrounds",
-                "Poetry cards (no watermark)",
-                "Audio readings",
-                "Learning mode",
-                "Export your collection",
+                "Unlimited favorites (free: 20 max)",
+                "Unlimited AI audio recitation (free: 10/day)",
+                "Share poetry cards without watermark",
+                "All future updates included",
             )
             features.forEach { feature ->
                 Row(
@@ -201,7 +275,7 @@ private fun PremiumPurchaseCard(onPurchase: () -> Unit, onRestore: () -> Unit) {
 }
 
 @Composable
-private fun PremiumActiveCard() {
+private fun PremiumActiveCard(isTestMode: Boolean = false) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -220,14 +294,20 @@ private fun PremiumActiveCard() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Premium Active",
+                text = if (isTestMode) "Test Mode Active" else "Premium Active",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Normal,
                 color = MutedGold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Thank you for supporting poetry.",
+                text = if (isTestMode) "Premium features unlocked (test)" else "Thank you for supporting poetry.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "✓ Unlimited favorites\n✓ Unlimited AI audio recitations\n✓ No watermark on share cards\n✓ All future updates included",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

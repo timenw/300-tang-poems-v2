@@ -1,6 +1,7 @@
 package com.poem300
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.poem300.billing.BillingManager
@@ -9,12 +10,30 @@ import com.poem300.data.model.Poem
 import com.poem300.data.repository.PoemRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = PoemDatabase.getInstance(application)
     private val repository = PoemRepository(database.poemDao(), database.favoriteDao())
     val billingManager by lazy { BillingManager(application) }
+
+    // Audio playback limit for free users
+    companion object {
+        private const val PREFS_NAME = "audio_limit_prefs"
+        private const val KEY_AUDIO_COUNT = "audio_play_count"
+        private const val KEY_AUDIO_DATE = "audio_play_date"
+        private const val AUDIO_LIMIT = 10 // free users: 10 per day
+    }
+
+    private val audioPrefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val _audioPlayCount = MutableStateFlow(0)
+    val audioPlayCount: StateFlow<Int> = _audioPlayCount.asStateFlow()
+
+    private val _audioLimitReached = MutableStateFlow(false)
+    val audioLimitReached: StateFlow<Boolean> = _audioLimitReached.asStateFlow()
 
     // All poems
     val allPoems: StateFlow<List<Poem>> = repository.getAllPoems()
@@ -64,9 +83,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Premium status
     val isPremium: StateFlow<Boolean> by lazy { billingManager.isPremium }
 
+    // Show premium prompt when free user hits favorite limit
+    private val _showPremiumPrompt = MutableStateFlow(false)
+    val showPremiumPrompt: StateFlow<Boolean> = _showPremiumPrompt.asStateFlow()
+
     init {
         loadTodayPoem()
         loadFavoriteCount()
+        loadAudioCount()
         // Delay billing init to avoid crash on devices without Google Play
         viewModelScope.launch {
             try {
@@ -75,6 +99,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // Ignore billing errors on devices without Google Play
             }
         }
+    }
+
+    private fun loadAudioCount() {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val savedDate = audioPrefs.getString(KEY_AUDIO_DATE, "")
+        if (savedDate != today) {
+            // New day, reset count
+            audioPrefs.edit()
+                .putString(KEY_AUDIO_DATE, today)
+                .putInt(KEY_AUDIO_COUNT, 0)
+                .apply()
+            _audioPlayCount.value = 0
+        } else {
+            _audioPlayCount.value = audioPrefs.getInt(KEY_AUDIO_COUNT, 0)
+        }
+        _audioLimitReached.value = _audioPlayCount.value >= AUDIO_LIMIT
+    }
+
+    fun onAudioPlayed() {
+        val newCount = _audioPlayCount.value + 1
+        _audioPlayCount.value = newCount
+        audioPrefs.edit().putInt(KEY_AUDIO_COUNT, newCount).apply()
+        _audioLimitReached.value = newCount >= AUDIO_LIMIT
+    }
+
+    fun canPlayAudio(): Boolean {
+        return isPremium.value || _audioPlayCount.value < AUDIO_LIMIT
     }
 
     private fun loadFavoriteCount() {
@@ -160,7 +211,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 // Check limit for free users
                 if (!isPremium.value && _favoriteCount.value >= 20) {
-                    // Will trigger premium prompt in UI
+                    _showPremiumPrompt.value = true
                     return@launch
                 }
                 repository.addFavorite(poemId)
@@ -178,6 +229,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.updateNote(poemId, note)
         }
+    }
+
+    fun clearPremiumPrompt() {
+        _showPremiumPrompt.value = false
     }
 
     fun isFavorite(poemId: Int): Boolean {

@@ -53,10 +53,32 @@ class MainActivity : ComponentActivity() {
 fun Poem300App(billingManager: BillingManager) {
     val vm: MainViewModel = viewModel()
     val navController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val showPremiumPrompt by vm.showPremiumPrompt.collectAsState()
+    val activity = LocalContext.current as? ComponentActivity
 
+    // Show premium prompt snackbar when free user hits favorite limit
+    LaunchedEffect(showPremiumPrompt) {
+        if (showPremiumPrompt) {
+            val result = snackbarHostState.showSnackbar(
+                message = "You've reached the 20 favorites limit. Go Premium for unlimited!",
+                actionLabel = "Upgrade",
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                activity?.let { billingManager.launchPurchaseFlow(it) }
+            }
+            vm.clearPremiumPrompt()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { scaffoldPadding ->
     NavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = "home",
+        modifier = Modifier.padding(scaffoldPadding)
     ) {
         // Home
         composable("home") {
@@ -102,11 +124,16 @@ fun Poem300App(billingManager: BillingManager) {
                     poem = p,
                     isFavorite = favIds.contains(poemId),
                     isPremium = isPremium,
+                    isTestMode = billingManager.isTestMode.collectAsState().value,
+                    audioPlayCount = vm.audioPlayCount.collectAsState().value,
+                    canPlayAudio = vm.canPlayAudio(),
+                    onAudioPlayed = { vm.onAudioPlayed() },
                     userNote = note,
                     onFavoriteClick = { vm.toggleFavorite(poemId) },
                     onNoteChange = { vm.updateNote(poemId, it) },
                     onBack = { navController.popBackStack() },
                     onShareQuote = { navController.navigate("quote/$poemId") },
+                    onUpgradeClick = { billingManager.launchPurchaseFlow(activity) },
                 )
             }
         }
@@ -167,16 +194,21 @@ fun Poem300App(billingManager: BillingManager) {
         // Settings
         composable("settings") {
             val isPremium by vm.isPremium.collectAsState()
+            val isTestMode by billingManager.isTestMode.collectAsState()
             val favoriteCount by vm.favoriteCount.collectAsState()
+            val audioPlayCount by vm.audioPlayCount.collectAsState()
             val activity = LocalContext.current as ComponentActivity
 
             SettingsScreen(
                 isPremium = isPremium,
+                isTestMode = isTestMode,
                 favoriteCount = favoriteCount,
+                audioPlayCount = audioPlayCount,
                 onPurchaseClick = { billingManager.launchPurchaseFlow(activity) },
                 onRestoreClick = { billingManager.startConnection() },
                 onPrivacyClick = { navController.navigate("privacy") },
                 onBack = { navController.popBackStack() },
+                onToggleTestMode = { billingManager.toggleTestMode() },
             )
         }
 
@@ -194,6 +226,7 @@ fun Poem300App(billingManager: BillingManager) {
         ) { backStackEntry ->
             val poemId = backStackEntry.arguments?.getInt("poemId") ?: return@composable
             val poem by vm.currentPoem.collectAsState()
+            val isPremium by vm.isPremium.collectAsState()
 
             LaunchedEffect(poemId) {
                 vm.openPoem(poemId)
@@ -202,6 +235,7 @@ fun Poem300App(billingManager: BillingManager) {
             poem?.let { p ->
                 QuoteScreen(
                     poem = p,
+                    isPremium = isPremium,
                     onBack = { navController.popBackStack() },
                 )
             }

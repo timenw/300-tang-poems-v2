@@ -41,6 +41,7 @@ import java.io.FileOutputStream
 @Composable
 fun QuoteScreen(
     poem: Poem,
+    isPremium: Boolean = false,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -58,7 +59,7 @@ fun QuoteScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        sharePoemCard(context, poem, selectedStyle)
+                        sharePoemCard(context, poem, selectedStyle, isPremium)
                     }) {
                         Icon(Icons.Filled.Share, contentDescription = "Share")
                     }
@@ -224,7 +225,7 @@ fun PoemQuoteCard(
     }
 }
 
-private fun sharePoemCard(context: Context, poem: Poem, style: Int) {
+private fun sharePoemCard(context: Context, poem: Poem, style: Int, isPremium: Boolean) {
     try {
         val width = 1080
         val height = 1440
@@ -322,6 +323,22 @@ private fun sharePoemCard(context: Context, poem: Poem, style: Int) {
             textSize = 24f
         }
         canvas.drawText("300 Tang Poems", width / 2f, y, paint)
+
+        // Watermark for free users
+        if (!isPremium) {
+            val wmY = height - 120f
+            paint.apply {
+                color = (textColor and 0xFFFFFF) or (0x66 shl 24) // 40% alpha
+                textSize = 28f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                style = Paint.Style.FILL
+                textAlign = Paint.Align.CENTER
+            }
+            canvas.drawText("Get Premium — No Watermark", width / 2f, wmY, paint)
+            paint.textSize = 22f
+            paint.typeface = Typeface.DEFAULT
+            canvas.drawText("300 Tang Poems · $0.99 one time", width / 2f, wmY + 36f, paint)
+        }
 
         // Save and share
         val cachePath = File(context.cacheDir, "shared_poems")

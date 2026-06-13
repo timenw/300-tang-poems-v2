@@ -19,14 +19,53 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
+    // Test mode: when true, simulates premium without real purchase
+    private val _isTestMode = MutableStateFlow(false)
+    val isTestMode: StateFlow<Boolean> = _isTestMode.asStateFlow()
+
     private var billingClient: BillingClient? = null
 
     companion object {
         private const val TAG = "BillingManager"
         const val SKU_PREMIUM = "poem_premium_lifetime"
+
+        // Debug build auto-enables test mode (no real purchase needed)
+        val isDebugBuild: Boolean = android.os.Build.FINGERPRINT?.contains("generic") == true
+                || try { Class.forName("com.poem300.BuildConfig").getField("DEBUG").get(null) as Boolean } catch (_: Exception) { false }
+    }
+
+    init {
+        if (isDebugBuild) {
+            _isTestMode.value = true
+            Log.d(TAG, "Debug build detected - test mode available")
+        }
+    }
+
+    fun enableTestMode() {
+        _isTestMode.value = true
+        _isPremium.value = true
+        Log.d(TAG, "Test mode enabled - premium activated")
+    }
+
+    fun disableTestMode() {
+        _isTestMode.value = false
+        _isPremium.value = false
+        Log.d(TAG, "Test mode disabled")
+    }
+
+    fun toggleTestMode() {
+        if (_isTestMode.value) disableTestMode() else enableTestMode()
     }
 
     fun startConnection() {
+        // In debug/test mode, skip real billing connection
+        if (isDebugBuild || _isTestMode.value) {
+            Log.d(TAG, "Test mode: skipping real billing connection")
+            _isConnected.value = true
+            _isPremium.value = true
+            return
+        }
+
         try {
             billingClient = BillingClient.newBuilder(application)
                 .setListener(this)

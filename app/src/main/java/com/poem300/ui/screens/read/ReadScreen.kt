@@ -27,16 +27,22 @@ fun ReadScreen(
     poem: Poem,
     isFavorite: Boolean,
     isPremium: Boolean,
+    isTestMode: Boolean,
+    audioPlayCount: Int,
+    canPlayAudio: Boolean,
+    onAudioPlayed: () -> Unit,
     userNote: String,
     onFavoriteClick: () -> Unit,
     onNoteChange: (String) -> Unit,
     onBack: () -> Unit,
     onShareQuote: () -> Unit,
+    onUpgradeClick: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     var showAnnotation by remember { mutableStateOf(false) }
     var showTranslation by remember { mutableStateOf(false) }
     var showNoteEditor by remember { mutableStateOf(false) }
+    var showAudioLimitDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Audio manager - bundled in assets
@@ -55,6 +61,34 @@ fun ReadScreen(
         onDispose {
             audioManager.release()
         }
+    }
+
+    // Audio limit dialog
+    if (showAudioLimitDialog) {
+        AlertDialog(
+            onDismissRequest = { showAudioLimitDialog = false },
+            title = { Text("Daily Audio Limit Reached") },
+            text = {
+                Column {
+                    Text("You've used all $audioPlayCount free audio plays today.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Upgrade to Premium for unlimited AI recitations!")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAudioLimitDialog = false
+                    onUpgradeClick()
+                }) {
+                    Text("Upgrade — $0.99")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAudioLimitDialog = false }) {
+                    Text("Maybe Later")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -97,16 +131,28 @@ fun ReadScreen(
                     // Read aloud (AI audio)
                     AssistChip(
                         onClick = {
-                            if (isPlaying) {
+                            if (!canPlayAudio) {
+                                showAudioLimitDialog = true
+                            } else if (isPlaying) {
                                 audioManager.stop()
                                 isPlaying = false
                             } else {
                                 val started = audioManager.play(poemId)
-                                isPlaying = started
+                                if (started) {
+                                    isPlaying = true
+                                    onAudioPlayed()
+                                }
                             }
                         },
                         label = {
-                            Text(if (isPlaying) "Stop" else "Read")
+                            Text(
+                                when {
+                                    isPlaying -> "Stop"
+                                    !canPlayAudio -> "Limit Reached"
+                                    !isPremium && audioPlayCount >= 7 -> "Read (${10 - audioPlayCount} left)"
+                                    else -> "Read"
+                                }
+                            )
                         },
                         leadingIcon = {
                             Icon(
