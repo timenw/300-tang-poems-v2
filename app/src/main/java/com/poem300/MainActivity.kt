@@ -75,11 +75,11 @@ fun Poem300App(billingManager: BillingManager) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { scaffoldPadding ->
-    NavHost(
-        navController = navController,
-        startDestination = "home",
-        modifier = Modifier.padding(scaffoldPadding)
-    ) {
+        NavHost(
+            navController = navController,
+            startDestination = "home",
+            modifier = Modifier.padding(scaffoldPadding)
+        ) {
         // Home
         composable("home") {
             val todayPoem by vm.todayPoem.collectAsState()
@@ -240,5 +240,6 @@ fun Poem300App(billingManager: BillingManager) {
                 )
             }
         }
+    }
     }
 }
