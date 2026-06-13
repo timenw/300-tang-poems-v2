@@ -133,7 +133,7 @@ fun Poem300App(billingManager: BillingManager) {
                     onNoteChange = { vm.updateNote(poemId, it) },
                     onBack = { navController.popBackStack() },
                     onShareQuote = { navController.navigate("quote/$poemId") },
-                    onUpgradeClick = { billingManager.launchPurchaseFlow(activity) },
+                    onUpgradeClick = { activity?.let { billingManager.launchPurchaseFlow(it) } },
                 )
             }
         }

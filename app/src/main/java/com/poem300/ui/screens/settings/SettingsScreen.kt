@@ -104,7 +104,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             LinearProgressIndicator(
-                                progress = { audioPlayCount / 10f },
+                                progress = audioPlayCount / 10f,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             Spacer(modifier = Modifier.height(4.dp))

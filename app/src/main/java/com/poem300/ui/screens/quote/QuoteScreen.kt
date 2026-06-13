@@ -327,13 +327,11 @@ private fun sharePoemCard(context: Context, poem: Poem, style: Int, isPremium: B
         // Watermark for free users
         if (!isPremium) {
             val wmY = height - 120f
-            paint.apply {
-                color = (textColor and 0xFFFFFF) or (0x66 shl 24) // 40% alpha
-                textSize = 28f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                style = Paint.Style.FILL
-                textAlign = Paint.Align.CENTER
-            }
+            paint.color = (textColor and 0xFFFFFF) or (0x66 shl 24) // 40% alpha
+            paint.textSize = 28f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.style = Paint.Style.FILL
+            paint.textAlign = Paint.Align.CENTER
             canvas.drawText("Get Premium — No Watermark", width / 2f, wmY, paint)
             paint.textSize = 22f
             paint.typeface = Typeface.DEFAULT
