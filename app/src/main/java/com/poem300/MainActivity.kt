@@ -21,7 +21,6 @@ import com.poem300.ui.screens.read.ReadScreen
 import com.poem300.ui.screens.search.SearchScreen
 import com.poem300.ui.screens.settings.SettingsScreen
 import com.poem300.ui.screens.settings.PrivacyPolicyScreen
-import com.poem300.ui.screens.quote.QuoteScreen
 import com.poem300.ui.theme.Poem300Theme
 
 class MainActivity : ComponentActivity() {
@@ -90,7 +89,6 @@ fun Poem300App() {
                 onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToFavorites = { navController.navigate("favorites") },
                 onNavigateToSettings = { navController.navigate("settings") },
-                onNavigateToQuote = { navController.navigate("quote") },
             )
         }
 
@@ -122,7 +120,6 @@ fun Poem300App() {
                     onFavoriteClick = { vm.toggleFavorite(poemId) },
                     onNoteChange = { vm.updateNote(poemId, it) },
                     onBack = { navController.popBackStack() },
-                    onShareQuote = { navController.navigate("quote/$poemId") },
                     onUpgradeClick = { activity?.let { billingManager.launchPurchaseFlow(it) } },
                 )
             }
@@ -209,28 +206,6 @@ fun Poem300App() {
                 onBack = { navController.popBackStack() },
             )
         }
-
-        // Quote card
-        composable(
-            "quote/{poemId}",
-            arguments = listOf(navArgument("poemId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val poemId = backStackEntry.arguments?.getInt("poemId") ?: return@composable
-            val poem by vm.currentPoem.collectAsState()
-            val isPremium by vm.isPremium.collectAsState()
-
-            LaunchedEffect(poemId) {
-                vm.openPoem(poemId)
-            }
-
-            poem?.let { p ->
-                QuoteScreen(
-                    poem = p,
-                    isPremium = isPremium,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-        }
     }
-    }
+}
 }

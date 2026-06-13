@@ -34,7 +34,6 @@ fun HomeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToQuote: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val calendar = Calendar.getInstance()
@@ -108,9 +107,6 @@ fun HomeScreen(
                         Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Another")
-                    }
-                    FilledTonalButton(onClick = onNavigateToQuote) {
-                        Text("Share Card")
                     }
                 }
             }

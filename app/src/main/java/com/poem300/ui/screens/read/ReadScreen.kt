@@ -35,7 +35,6 @@ fun ReadScreen(
     onFavoriteClick: () -> Unit,
     onNoteChange: (String) -> Unit,
     onBack: () -> Unit,
-    onShareQuote: () -> Unit,
     onUpgradeClick: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -101,9 +100,6 @@ fun ReadScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onShareQuote) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share")
-                    }
                     IconButton(onClick = onFavoriteClick) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
