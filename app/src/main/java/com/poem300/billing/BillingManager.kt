@@ -39,10 +39,12 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     }
 
     init {
+        // Debug build: do NOT auto-enable test mode or premium
+        // User must manually toggle test mode in Settings to test premium features
         if (isDebugBuild) {
-            _isTestMode.value = true
-            _isPremium.value = true
-            Log.d(TAG, "Debug build detected - test mode + premium auto-enabled")
+            _isTestMode.value = false
+            _isPremium.value = false
+            Log.d(TAG, "Debug build detected - test mode OFF, premium OFF")
         }
     }
 
@@ -63,11 +65,20 @@ class BillingManager(private val application: Application) : PurchasesUpdatedLis
     }
 
     fun startConnection() {
-        // In debug/test mode, skip real billing connection
-        if (isDebugBuild || _isTestMode.value) {
+        // In test mode, simulate connected but don't auto-grant premium
+        // Premium is only granted when user explicitly toggles test mode ON
+        if (_isTestMode.value) {
             Log.d(TAG, "Test mode: skipping real billing connection")
             _isConnected.value = true
-            _isPremium.value = true
+            // Check if premium was explicitly enabled via toggle
+            // (init sets test mode ON but premium OFF for debug builds)
+            return
+        }
+
+        // Real billing connection for release builds
+        if (isDebugBuild) {
+            Log.d(TAG, "Debug build without test mode: skipping real billing connection")
+            _isConnected.value = true
             return
         }
 
