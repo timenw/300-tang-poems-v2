@@ -25,6 +25,27 @@ jobs:
       - name: Restore release keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
+      - name: Fix pre-packaged DB schema (favorites.poemId NOT NULL)
+        run: |
+          python3 -c "
+          import sqlite3
+          conn = sqlite3.connect('app/src/main/assets/poems.db')
+          c = conn.cursor()
+          c.execute('SELECT sql FROM sqlite_master WHERE type=\"table\" AND name=\"favorites\"')
+          print('Before:', c.fetchone())
+          c.execute('DROP TABLE IF EXISTS favorites')
+          c.execute('''CREATE TABLE favorites (
+              poemId INTEGER PRIMARY KEY NOT NULL,
+              note TEXT NOT NULL DEFAULT '',
+              groupName TEXT NOT NULL DEFAULT 'Default',
+              createdAt INTEGER NOT NULL DEFAULT 0
+          )''')
+          conn.commit()
+          c.execute('SELECT sql FROM sqlite_master WHERE type=\"table\" AND name=\"favorites\"')
+          print('After:', c.fetchone())
+          conn.close()
+          "
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 

@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
 data class Favorite(
     @PrimaryKey
     @ColumnInfo(name = "poemId")
-    val poemId: Int?,
+    val poemId: Int,
 
     @ColumnInfo(name = "note", defaultValue = "")
     val note: String = "",
