@@ -21,11 +21,3 @@ data class Poem(
     val category: String,
     @ColumnInfo(defaultValue = "1") val difficulty: Int = 1            // DB: DEFAULT 1
 )
-
-@Entity(tableName = "favorites")
-data class Favorite(
-    @PrimaryKey val poemId: Int,
-    @ColumnInfo(defaultValue = "") val note: String = "",
-    @ColumnInfo(defaultValue = "Default") val groupName: String = "Default",
-    @ColumnInfo(defaultValue = "0") val createdAt: Long = 0L
-)
