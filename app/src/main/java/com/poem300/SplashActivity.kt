@@ -1,31 +1,33 @@
 package com.poem300
 
-import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.activity.ComponentActivity
 
 /**
- * 开屏页 - 无广告版本（待后续添加广告）
- * 直接跳转到 MainActivity
+ * 开屏页 - 纯跳转，无广告
  */
-@SuppressLint("CustomSplashScreen")
-class SplashActivity : ComponentActivity() {
+class SplashActivity : Activity() {
 
     companion object {
-        private const val TAG = "SplashAd"
+        private const val TAG = "Splash"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate - navigating to MainActivity")
 
-        Log.d(TAG, "SplashActivity created, navigating to MainActivity")
-
-        // 直接跳转到主页
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+        // 延迟 1 秒后跳转，让系统完成初始化
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                startActivity(Intent(this, MainActivity::class.java))
+                finish()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start MainActivity: ${e.message}")
+            }
+        }, 1000)
     }
 }
