@@ -4,7 +4,3 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.**
 -keep class com.android.billingclient.api.** { *; }
-
-# Google AdMob
--keep class com.google.android.gms.ads.** { *; }
--dontwarn com.google.android.gms.ads.**

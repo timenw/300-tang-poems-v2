@@ -11,8 +11,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // AdMob / Google Ads
-        maven { url = uri("https://maven.google.com") }
     }
 }
 
