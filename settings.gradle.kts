@@ -12,7 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // Pangle (穿山甲) SDK
-        maven { url = uri("https://artifact.bytedance.com/repository/pangle_google/") }
+        maven { url = uri("https://artifact.bytedance.com/repository/pangle/") }
         // AdMob / Google Ads
         maven { url = uri("https://maven.google.com") }
     }
