@@ -13,8 +13,9 @@
         android:theme="@style/Theme.Poem300"
         tools:targetApi="34">
 
+        <!-- 开屏页 - 设为启动页 -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.Poem300">
             <intent-filter>
@@ -22,6 +23,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 主页 - 不再是启动页 -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Poem300" />
 
         <!-- FileProvider for sharing quote cards -->
         <provider
