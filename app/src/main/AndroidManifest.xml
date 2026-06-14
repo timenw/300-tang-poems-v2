@@ -2,7 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 基础权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 广告所需权限 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
         android:allowBackup="true"
@@ -13,8 +18,19 @@
         android:theme="@style/Theme.Poem300"
         tools:targetApi="34">
 
+        <!-- ===== 广告 App ID 配置 ===== -->
+        <!-- TODO: 注册穿山甲后填入真实 App ID -->
+        <meta-data
+            android:name="pangle_app_id"
+            android:value="YOUR_PANGLE_APP_ID" />
+        <!-- TODO: 注册 AdMob 后填入真实 App ID -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="YOUR_ADMOB_APP_ID" />
+
+        <!-- 开屏广告页 - 设为启动页 -->
         <activity
-            android:name=".MainActivity"
+            android:name=".SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.Poem300">
             <intent-filter>
@@ -22,6 +38,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 主页 - 不再是启动页 -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Poem300" />
 
         <!-- FileProvider for sharing quote cards -->
         <provider

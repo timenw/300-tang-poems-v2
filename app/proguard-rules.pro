@@ -4,3 +4,11 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.**
 -keep class com.android.billingclient.api.** { *; }
+
+# Google AdMob
+-keep class com.google.android.gms.ads.** { *; }
+-dontwarn com.google.android.gms.ads.**
+
+# Pangle (穿山甲)
+-keep class com.pangle.global.** { *; }
+-dontwarn com.pangle.global.**

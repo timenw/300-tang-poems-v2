@@ -119,6 +119,12 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // === 广告 SDK ===
+    // Google AdMob
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    // Pangle (穿山甲)
+    implementation("com.pangle.global:ads-sdk:6.5.0.7")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
