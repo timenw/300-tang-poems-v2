@@ -17,7 +17,7 @@
         <!-- AdMob App ID (required for AdMob SDK) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-1212786513185567~4552160112" />
 
         <!-- 开屏页 - 设为启动页 -->
         <activity

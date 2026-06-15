@@ -20,8 +20,8 @@ class SplashActivity : Activity() {
     companion object {
         private const val TAG = "SplashAd"
 
-        // AdMob 开屏广告单元 ID（测试 ID，上架前替换为真实 ID）
-        private const val ADMOB_SLOT_ID = "ca-app-pub-3940256099942544/9257395911"
+        // AdMob 开屏广告单元 ID
+        private const val ADMOB_SLOT_ID = "ca-app-pub-1212786513185567/1371799713"
     }
 
     private var admobAd: AppOpenAd? = null
