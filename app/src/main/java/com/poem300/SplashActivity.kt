@@ -6,10 +6,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.google.android.gms.ads.MobileAds
 
 /**
- * 开屏页 - 纯跳转，无广告初始化
- * 用于测试：保留 AdMob SDK 依赖和 meta-data，但不调用任何广告 API
+ * 开屏页 - 初始化 AdMob SDK，但不加载广告
+ * 用于测试：排查 MobileAds.initialize() 是否导致闪退
  */
 class SplashActivity : Activity() {
 
@@ -19,7 +20,16 @@ class SplashActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate - navigating to MainActivity (no ad init)")
+        Log.d(TAG, "onCreate - initializing AdMob SDK only")
+
+        // 初始化 AdMob SDK（不加载广告）
+        try {
+            MobileAds.initialize(this) { status ->
+                Log.d(TAG, "AdMob initialized: $status")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "AdMob init failed: ${e.message}")
+        }
 
         // 延迟 1 秒后跳转
         Handler(Looper.getMainLooper()).postDelayed({
